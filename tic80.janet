@@ -161,7 +161,9 @@ The address is specified in hexadecimal format, the value in decimal."
   "This function returns the mouse coordinates and a boolean value for the state of each mouse button,with true indicating that a button is pressed.
    Returns: x y left middle right scrollx scrolly"
   []
-  (echo-api "mouse"))
+  (echo-api "mouse")
+  [10 20 true false false 0 0]
+  )
 
 (defn mset
   "This function will change the tile at the specified map coordinates.

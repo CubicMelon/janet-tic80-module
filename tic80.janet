@@ -1,5 +1,10 @@
 (def- janet-print print) # since we redefine "print" to match tic80's definition
 
+(def- _rng (math/rng))
+(defn- rnd-unlikely-bool [] (> (math/random) 0.9))
+(defn- rnd-likely-bool [] (> (math/random) 0.2))
+(defn- rnd-int [max-ex] (math/rng-int _rng max-ex))
+
 (defmacro- echo-api [<apifn> & <apiargs>] 
   ~(do 
      (prin "tic80/" ,<apifn> ": ") 
@@ -13,7 +18,8 @@ It remains true for as long as the key is held down.
 If you want to test if a key was just pressed, use `btnp()` instead.
    Returns: pressed"
   [id]
-  (echo-api "btn" id))
+  (echo-api "btn" id)
+  (rnd-unlikely-bool))
 
 (defn btnp
   "This function allows you to read the status of one of TIC's buttons.
@@ -26,7 +32,8 @@ Since time is expressed in ticks and TIC runs at 60 frames per second, we use th
   [id &opt hold period]
   (default hold -1)
   (default period -1)
-  (echo-api "btnp" id hold period))
+  (echo-api "btnp" id hold period)
+  (rnd-unlikely-bool))
 
 (defn circ
   "This function draws a filled circle of the desired radius and color with its center at x, y.
@@ -74,7 +81,8 @@ It uses the Bresenham algorithm."
   "Returns true if the specified flag of the sprite is set. See `fset()` for more details.
    Returns: bool"
   [sprite-id flag]
-  (echo-api "fget" sprite-id flag))
+  (echo-api "fget" sprite-id flag)
+  (rnd-unlikely-bool))
 
 (defn font
   "Print string with font defined in foreground sprites.
@@ -85,7 +93,8 @@ To print to the console, check out `trace()`.
   (default fixed false)
   (default scale 1)
   (default alt false)
-  (echo-api "font" text x y chroma-key char-width char-height fixed scale alt))
+  (echo-api "font" text x y chroma-key char-width char-height fixed scale alt)
+  (* (length text) (+ char-width 1)))
 
 (defn fset
   "Each sprite has eight flags which can be used to store information or signal different conditions.
@@ -99,7 +108,8 @@ See algo `fget()`."
    Returns: pressed"
   [&opt code]
   (default code -1)
-  (echo-api "key" code))
+  (echo-api "key" code)
+  (rnd-unlikely-bool))
 
 (defn keyp
   "This function returns true if the given key is pressed but wasn't pressed in the previous frame.
@@ -109,7 +119,8 @@ Refer to `btnp()` for an explanation of the optional hold and period parameters.
   (default code -1)
   (default hold -1)
   (default period -1)
-  (echo-api "keyp" code hold period))
+  (echo-api "keyp" code hold period)
+  (rnd-unlikely-bool))
 
 (defn line
   "Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color."
@@ -155,15 +166,21 @@ The address is specified in hexadecimal format, the value in decimal."
   "Gets the sprite id at the given x and y map coordinate.
    Returns: tile-id"
   [x y]
-  (echo-api "mget" x y))
+  (echo-api "mget" x y)
+  (rnd-int 32))
 
 (defn mouse
   "This function returns the mouse coordinates and a boolean value for the state of each mouse button,with true indicating that a button is pressed.
    Returns: x y left middle right scrollx scrolly"
   []
   (echo-api "mouse")
-  [10 20 true false false 0 0]
-  )
+  [(rnd-int 240) 
+   (rnd-int 136) 
+   (rnd-likely-bool) 
+   (rnd-unlikely-bool) 
+   (rnd-unlikely-bool) 
+   (- (rnd-int 64) 32) 
+   (- (rnd-int 64) 32)])
 
 (defn mset
   "This function will change the tile at the specified map coordinates.
@@ -196,27 +213,32 @@ To write to a memory address, use `poke()`.
    Returns: value"
   [addr &opt bits]
   (default bits 8)
-  (echo-api "peek" addr bits))
+  (echo-api "peek" addr bits)
+  (rnd-int (math/pow bits 2))
+  )
 
 (defn peek1
   "This function enables you to read single bit values from TIC's RAM.
 The address is often specified in hexadecimal format.
    Returns: value"
   [addr]
-  (echo-api "peek1" addr))
+  (echo-api "peek1" addr)
+  (rnd-int 1))
 
 (defn peek2
   "This function enables you to read two bits values from TIC's RAM.
 The address is often specified in hexadecimal format."
   [addr]
-  (echo-api "peek2" addr))
+  (echo-api "peek2" addr)
+  (rnd-int 2))
 
 (defn peek4
   "This function enables you to read values from TIC's RAM.
 The address is often specified in hexadecimal format.
 See 'poke4()' for detailed information on how nibble addressing compares with byte addressing."
   [addr]
-  (echo-api "peek4" addr))
+  (echo-api "peek4" addr)
+  (rnd-int 16))
 
 (defn pix
   "This function can read or write pixel color values.
@@ -224,7 +246,8 @@ When called with a color parameter, the pixel at the specified coordinates is se
 Calling the function without a color parameter returns the color of the pixel at the specified position.
    Returns: color (when color argument is nil)"
   [x y &opt color]
-  (echo-api "pix" x y color))
+  (echo-api "pix" x y color)
+  (if (nil? color) (rnd-int 16) nil))
 
 (defn pmem
   "This function allows you to save and retrieve data in one of the 256 individual 32-bit slots available in the cartridge's persistent memory.
@@ -236,7 +259,8 @@ The data is stored as unsigned 32-bit integers (from 0 to 4294967295).
 This allows the user to update a cart without losing their saved data.
    Returns: value (when value argument is nil)"
   [index &opt value]
-  (echo-api "pmem" index value))
+  (echo-api "pmem" index value)
+  (if (nil? value) (math/floor (* (math/random) 4294967296)) nil))
 
 (defn poke
   "This function allows you to write a single byte to any address in TIC's RAM.
@@ -279,7 +303,8 @@ When fixed width is false, there will be a single space between each character.
   (default fixed false)
   (default scale 1)
   (default small-font false)
-  (echo-api "print" text x y color fixed scale small-font))
+  (echo-api "print" text x y color fixed scale small-font)
+  (* (length text) 5))
 
 (defn rect
   "This function draws a filled rectangle of the desired size and color at the specified position.
@@ -356,12 +381,14 @@ This resets the whole runtime memory to the contents of bank 0.Note that sync is
   (default to-cart false)
   (echo-api "sync" mask bank to-cart))
 
+(var- _ticks 0)
 (defn time
   "This function returns the number of milliseconds elapsed since the cartridge began execution.
 Useful for keeping track of time, animating items and triggering events.
    Returns: ticks"
   []
-  (echo-api "time"))
+  (echo-api "time")
+  (++ _ticks))
 
 (defn trace
   "This is a service function, useful for debugging your code.
@@ -386,7 +413,9 @@ It prints the message parameter to the console in the (optional) color specified
 Useful for creating persistent games which evolve over time between plays.
    Returns: timestamp"
   []
-  (echo-api "tstamp"))
+  (echo-api "tstamp")
+  (os/time)
+  )
 
 (defn ttri
   "It renders a triangle filled with texture from image ram, map ram or vbank.
@@ -403,8 +432,12 @@ So for example the top left corner of sprite #2 would be located at u=16, v=0."
   (default z3 0)
   (echo-api "ttri" x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 tex-src chroma-key z1 z2 z3))
 
+(var- _lastvbank 0)
 (defn vbank
   "VRAM contains 2x16K memory chips, use vbank(0) or vbank(1) to switch between them.
    Returns: previous"
   [&opt bank]
-  (echo-api "vbank" bank))
+  (echo-api "vbank" bank)
+  (let [lv _lastvbank]
+    (set _lastvbank bank)
+    lv))
